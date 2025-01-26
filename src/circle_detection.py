@@ -1,3 +1,6 @@
+
+# for loop used to process all images in z1_liver subfolder
+
 import numpy as np
 import cv2 as cv
 import os
@@ -54,18 +57,14 @@ def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adj
     circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=600,
                                 param2=adjusted_param2, minRadius=min_radius, maxRadius=max_radius)
     if circles is not None:
-        circles = np.round(circles[0]).astype("int") #access first detected circle **need to improve
         print(f"Circles detected: {circles}")
-        for (x,y,r) in circles:
-            print(f"Detected circle radius: {r}")
-
     else:
         print("No circles detected.")
-    return circles,r 
+    return circles
 
 def draw_circles(img_resized, circles):
     if circles is not None:
-        circles = np.round(circles[0]).astype("int")
+        circles = np.round(circles[0, :]).astype("int")
         for (x, y, r) in circles:
             cv.circle(img_resized, (x, y), r, (255, 0, 255), 4)
             cv.circle(img_resized, (x, y), 2, (255, 0, 255), 3)
@@ -74,79 +73,99 @@ def draw_circles(img_resized, circles):
         print('no circle detected in draw_circles')
     return img_resized
 
+DEBUG = False # Set to True for detailed debugging
+
+def calculate_success_rate(circles, expected_radius, tolerance=0.1):
+    """
+    Calculate success based on detected circle's radius and expected radius.
+    :param circles: Detected circles from HoughCircles.
+    :param expected_radius: The expected radius for the zoom level.
+    :param tolerance: Allowed deviation percentage (default ±10%).
+    :return: Boolean indicating success.
+    """
+    if circles is None:
+        if DEBUG:
+            print("[DEBUG] No circles detected")
+        return False  # No circles detected
+    
+    circles = np.round(circles[0]).astype("int")  # Round circle values
+    if DEBUG:
+        print(f"[DEBUG] Detected circles (x,y,r): {circles}")
+
+    matches = []
+    for (x, y, r) in circles: # Uses r (radius) from detected circle as a comparative variable
+        deviation = abs(r - expected_radius)
+        if DEBUG:
+            print(f"[DEBUG] Circle at ({x},{y} with radius {r}. Expected radius: {expected_radius}. Deviation: {deviation}")
+        
+        if deviation <= expected_radius * tolerance:
+            matches.append(r)
+
+    if DEBUG:
+        print(f"[DEBUG] Total matches: {len(matches)} / {len(circles)}")
+
+    return len(matches) > 0
+
 def main():
     ''' Where __file__ rep the current file being worked on'''
     #print(__file__)
     my_dir = Path(__file__).resolve().parent # go up one level to tests folder, .resolve() alone gives the absolute location
     print(my_dir)
-    img_dir = my_dir.parent.joinpath('data', 'raw', 'z5_liver') #.parent - go up to main level (autocalib-for-mono)
-    # then go into 'data/raw/z1_liver'
-    print('Full path to zoom level subfolder:', img_dir)
-    img_paths = img_dir.glob('*.png')  # Get all .png files in the directory
-    # or img_paths = glob.glob(f'{img_dir}/*.png')  # Get all .png files as a list of strings
+    img_dir = my_dir.parent.joinpath('data','raw', 'z4_liver') # form img_dir variable containing all images of all zoom levels
+    print(img_dir)
+
+    # Define zoom level
+    zoom_level = 'z1_liver'
+
+    # Define expected radii:
+    expected_radius = 361
+    success_count = 0
+    total_count = 0
+
+    # Process all images in z1_liver subfolder
+    img_paths = img_dir.glob('*.png')
 
     for img_pth in img_paths:
-    # Iterates through each file path in img_paths
         try:
-            # Convert img_paths to a list
-            img_paths = list(img_paths)
-
-            if not img_paths:
-                raise ValueError('No image files found in the directory.')
+            print(f"Processing image: {img_pth}")
+            # Load the image 
+            # Images normally loaded in color, specify grey image from the start
+            img = cv.imread(str(img_pth), cv.IMREAD_GRAYSCALE)
+            # removed for loop that goes through different subfolders within 'raw'
             
-            # Use first image for processing
-            first_img_pth = img_paths[0]
+            # Call image processing functions 
+            img_resized = resize_image(img)
+            thresh = blur_image(img_resized)
+            num_labels, labels, stats, centroids = find_connected_components(thresh)
+            mask, color_copy = filter_components(centroids, thresh, stats, labels, num_labels)
+            mask_cleaned = clean_mask(mask)
+            edges = cv.Canny(mask_cleaned, 50, 150)
+                    
+            # Detect circles in the edge-detected image
+            circles = detect_circles(edges)
 
-            # Read image
-            img = cv.imread(first_img_pth, cv.IMREAD_GRAYSCALE)
-        
-            if img is None:
-                raise ValueError (f'File {first_img_pth} could not be read')
-            cv.imshow('test', img)
+            # Compare detected circles to expected radius
+            success = calculate_success_rate(circles, expected_radius) # Calls function to calc success rate, with input variables circles and expected radius
+
+            # Update success and total counts
+            total_count += 1
+            if success:
+                success_count += 1
+            else:
+                print(f"[INFO] Failed to match circles in {img_pth}")
+
+            # Draw circles and display the result
+            color_output = cv.cvtColor(img_resized, cv.COLOR_GRAY2BGR)
+            color_output = draw_circles(color_output, circles)
+            cv.imshow('detected circle', color_output)
             cv.waitKey(1000)
-
+        
         except Exception as e:
-        # Handle any other unforeseen exceptions
-            print(f"An unexpected error occurred while processing {img_pth}: {e}")
+            print(f"[ERROR] Exception processing {img_pth}: {e}")
 
-    cv.destroyAllWindows()
-    
-    # Call 'Resize img' functrion
-    img_resized = resize_image(img)
-    cv.imshow('resized img',img_resized)
-    cv.waitKey(1000)
-
-    # Preprocess image (Gaussian blur and thresholding)
-    thresh = blur_image(img_resized)
-    cv.imshow('thresholded img',thresh)
-    cv.waitKey(1000)
-
-    # Find connected components
-    num_labels, labels, stats, centroids = find_connected_components(thresh, connectivity=8)
-
-    # Filter components based on size criteria
-    mask, color_copy = filter_components(centroids, thresh, stats, labels, num_labels, min_width=400, min_height=400, min_area=3000)
-    cv.imshow('ctd comp img', color_copy)
-    cv.waitKey(1000)
-
-    # Clean the mask using morphological operations
-    mask_cleaned = clean_mask(mask)
-    cv.imshow('clean mask', mask_cleaned)
-    cv.waitKey(1000)
-
-    # Apply Canny edge detection
-    edges = cv.Canny(mask_cleaned, 50, 150)
-    cv.imshow('canny edge detected image', edges)
-    cv.waitKey(1000)
-
-    # Detect circles in the edge-detected image
-    circles = detect_circles(edges)
-
-    # Draw circles and display the result
-    color_output = cv.cvtColor(img_resized, cv.COLOR_GRAY2BGR)
-    color_output = draw_circles(color_output, circles)
-    cv.imshow('detected circle', color_output)
-    cv.waitKey(10000)
+    # Calculate and display success rates
+    success_rate = (success_count /total_count * 100) if total_count > 0 else 0
+    print(f"\nSuccess Rate for z1_liver: {success_rate:.2f}%")
 
 if __name__ == '__main__':
     main()
