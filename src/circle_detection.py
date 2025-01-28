@@ -53,7 +53,7 @@ def clean_mask(mask, kernel_size=(13, 13)):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
     return cv.morphologyEx(mask, cv.MORPH_ELLIPSE, kernel)
 
-def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adjusted_param2= 10):
+def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adjusted_param2= 6):
     circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=600,
                                 param2=adjusted_param2, minRadius=min_radius, maxRadius=max_radius)
     if circles is not None:
@@ -111,14 +111,11 @@ def main():
     #print(__file__)
     my_dir = Path(__file__).resolve().parent # go up one level to tests folder, .resolve() alone gives the absolute location
     print(my_dir)
-    img_dir = my_dir.parent.joinpath('data','raw', 'z4_liver') # form img_dir variable containing all images of all zoom levels
+    img_dir = my_dir.parent.joinpath('data','raw', 'z5_white') # form img_dir variable containing all images of all zoom levels
     print(img_dir)
 
-    # Define zoom level
-    zoom_level = 'z1_liver'
-
     # Define expected radii:
-    expected_radius = 361
+    expected_radius = 410
     success_count = 0
     total_count = 0
 
