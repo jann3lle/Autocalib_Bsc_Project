@@ -50,7 +50,7 @@ def clean_mask(mask, kernel_size=(13, 13)):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
     return cv.morphologyEx(mask, cv.MORPH_ELLIPSE, kernel)
 
-def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adjusted_param2= 6):
+def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adjusted_param2= 8):
     circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=600,
                                 param2=adjusted_param2, minRadius=min_radius, maxRadius=max_radius)
     if circles is not None:
@@ -79,7 +79,7 @@ def main():
     #print(__file__)
     my_dir = Path(__file__).resolve().parent # go up one level to tests folder, .resolve() alone gives the absolute location
     print(my_dir)
-    img_dir = my_dir.parent.joinpath('data', 'raw', 'z5_white') #.parent - go up to main level (autocalib-for-mono)
+    img_dir = my_dir.parent.joinpath('data', 'calibration', 'z1') #.parent - go up to main level (autocalib-for-mono)
     # then go into 'data/raw/z1_liver'
     print('Full path to zoom level subfolder:', img_dir)
     img_paths = img_dir.glob('*.png')  # Get all .png files in the directory
@@ -97,7 +97,7 @@ def main():
                 raise ValueError('No image files found in the directory.')
             
             # Use first image for processing
-            first_img_pth = img_paths[0]
+            first_img_pth = img_paths[4]
 
             # Read image
             img = cv.imread(first_img_pth, cv.IMREAD_GRAYSCALE)
