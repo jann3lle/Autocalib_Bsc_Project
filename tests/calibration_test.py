@@ -1,6 +1,5 @@
 import numpy as np
 import cv2 as cv
-import glob
 from pathlib import Path
  
 # termination criteria
