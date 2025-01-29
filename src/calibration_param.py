@@ -1,79 +1,148 @@
 import numpy as np
 import cv2 as cv
-import glob
 from pathlib import Path
- 
-# termination criteria
-criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
- 
-# Prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((6*7,3), np.float32)
-objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
 
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
+# Termination criteria for cornerSubPix
+CRITERIA = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-# Image folder path
-my_dir = Path(__file__).resolve().parent
-img_dir = my_dir.parent.joinpath('data', 'calibration', 'chessboardimgs')
-#images = glob.glob(str(img_dir) + '*.jpg')
-images = list(img_dir.glob('*.jpg'))
+# Prepare object points (3D points in real-world space)
+OBJP = np.zeros((6 * 7, 3), np.float32)
+OBJP[:, :2] = np.mgrid[0:7, 0:6].T.reshape(-1, 2)
 
-# Check if the directory exists and contains any files
-if not img_dir.exists():
-    print("The directory does not exist.")
-elif not any(img_dir.iterdir()):  # Check if the directory is empty
-    print("The directory is empty.")
-else:
-    print("The directory contains files.")
 
-for fname in images:
-    img = cv.imread(fname)
-    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+def load_images(image_dir):
+    """
+    Load image paths from the given directory.
+    :param image_dir: Path to the folder containing chessboard images.
+    :return: List of image file paths.
+    """
+    img_dir = Path(image_dir)
+    
+    if not img_dir.exists():
+        print("The directory does not exist.")
+        return []
 
-# Find the chess board corners
-    ret, corners = cv.findChessboardCorners(gray, (7,6), None)
+    images = list(img_dir.glob('*.jpg'))
+    
+    if not images:
+        print("The directory is empty.")
+        return []
+    
+    print(f"Found {len(images)} images in {img_dir}.")
+    return images
 
-# If found, add object points, image points (after refining them)
-    if ret == True:
-        objpoints.append(objp)
- 
-        corners2 = cv.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
-        imgpoints.append(corners2)
- 
-        # Draw and display the corners
-        cv.drawChessboardCorners(img, (7,6), corners2, ret)
-        cv.imshow('img', img)
-        cv.waitKey(500)
-cv.destroyAllWindows()
 
-ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+def find_chessboard_corners(images):
+    """
+    Find chessboard corners in the provided images.
+    :param images: List of image file paths.
+    :return: Tuple (object points, image points) for calibration.
+    """
+    objpoints = []  # 3D points in real-world space
+    imgpoints = []  # 2D points in image plane
+    gray = None
 
-# Combine the path to the image
-img_path = img_dir.joinpath('left12.jpg')
+    for fname in images:
+        img = cv.imread(str(fname))
+        gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-# Select specific img (left12.jpg)
-img = cv.imread(img_path)
-h,  w = img.shape[:2]
-newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+        # Find chessboard corners
+        ret, corners = cv.findChessboardCorners(gray, (7, 6), None)
 
-# Undistort
-dst = cv.undistort(img, mtx, dist, None, newcameramtx)
- 
-# Crop the image
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
+        if ret:
+            objpoints.append(OBJP)
 
-# Save the image to a specific location
-# Define the directory where the image should be saved
-save_dir = Path(__file__).resolve().parent.parent.joinpath('data', 'calibration', 'chessboardimgs')  # Example output folder
-# Define the full path for the output image
-output_image_path = save_dir.joinpath('calibresult-test.png')
-# Save image
-if dst is None:
-    print("Failed to generate the image (dst is None).")
-else:
-    # Proceed with saving the image
-    cv.imwrite(str(output_image_path), dst)
-    print(f"Image saved to: {output_image_path}")
+            corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), CRITERIA)
+            imgpoints.append(corners2)
+
+            # Draw and display the corners
+            cv.drawChessboardCorners(img, (7, 6), corners2, ret)
+            cv.imshow('Chessboard Corners', img)
+            cv.waitKey(500)
+
+    cv.destroyAllWindows()
+    return objpoints, imgpoints, gray.shape if gray is not None else None
+
+
+def calibrate_camera(objpoints, imgpoints, image_shape):
+    """
+    Calibrate the camera using object points and image points.
+    :param objpoints: 3D real-world points.
+    :param imgpoints: 2D image plane points.
+    :param image_shape: Shape of the image used for calibration.
+    :return: Camera matrix, distortion coefficients, rotation vectors, translation vectors.
+    """
+    if image_shape is None:
+        print("No valid images provided for calibration.")
+        return None, None, None, None, None
+
+    ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
+        objpoints, imgpoints, image_shape[::-1], None, None
+    )
+    
+    if ret:
+        print("Camera calibration successful!")
+    else:
+        print("Camera calibration failed!")
+
+    return ret, mtx, dist, rvecs, tvecs
+
+
+def undistort_image(img_path, mtx, dist, save_dir):
+    """
+    Undistort a given image and save the corrected version.
+    :param img_path: Path to the image file to be undistorted.
+    :param mtx: Camera matrix.
+    :param dist: Distortion coefficients.
+    :param save_dir: Directory to save the undistorted image.
+    """
+    img = cv.imread(str(img_path))
+    h, w = img.shape[:2]
+
+    # Get optimal new camera matrix
+    newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
+
+    # Undistort the image
+    dst = cv.undistort(img, mtx, dist, None, newcameramtx)
+
+    # Crop the image
+    x, y, w, h = roi
+    dst = dst[y:y+h, x:x+w]
+
+    # Save the image
+    save_path = Path(save_dir).joinpath('calibresult-test.png')
+    
+    if dst is None:
+        print("Failed to generate the image (dst is None).")
+    else:
+        cv.imwrite(str(save_path), dst)
+        print(f"Image saved to: {save_path}")
+
+
+def main():
+    # Define image folder path
+    base_dir = Path(__file__).resolve().parent.parent
+    img_dir = base_dir.joinpath('data', 'calibration', 'chessboardimgs')
+
+    # Load images
+    images = load_images(img_dir)
+    if not images:
+        return
+
+    # Find chessboard corners
+    objpoints, imgpoints, image_shape = find_chessboard_corners(images)
+
+    # Calibrate camera
+    ret, mtx, dist, rvecs, tvecs = calibrate_camera(objpoints, imgpoints, image_shape)
+
+    if ret:
+        # Select a specific image for undistortion
+        img_path = img_dir.joinpath('left14.jpg')
+        if img_path.exists():
+            undistort_image(img_path, mtx, dist, img_dir)
+        else:
+            print(f"Image {img_path} not found for undistortion.")
+
+
+if __name__ == '__main__':
+    main()
