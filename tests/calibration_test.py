@@ -15,9 +15,9 @@ imgpoints = [] # 2d points in image plane.
 
 # Image folder path
 my_dir = Path(__file__).resolve().parent
-img_dir = my_dir.parent.joinpath('data', 'calibration', 'chessboardimgs')
+img_dir = my_dir.parent.joinpath('data', 'calibration', 'z2_images')
 #images = glob.glob(str(img_dir) + '*.jpg')
-images = list(img_dir.glob('*.jpg'))
+images = list(img_dir.glob('*.png'))
 
 # Check if the directory exists and contains any files
 if not img_dir.exists():
@@ -50,7 +50,7 @@ cv.destroyAllWindows()
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 
 # Combine the path to the image
-img_path = img_dir.joinpath('left12.jpg')
+img_path = img_dir.joinpath('00001.png')
 
 # Select specific img (left12.jpg)
 img = cv.imread(img_path)
@@ -66,9 +66,9 @@ dst = dst[y:y+h, x:x+w]
 
 # Save the image to a specific location
 # Define the directory where the image should be saved
-save_dir = Path(__file__).resolve().parent.parent.joinpath('data', 'calibration', 'chessboardimgs')  # Example output folder
+save_dir = Path(__file__).resolve().parent.parent.joinpath('data', 'processed','tests')  # Example output folder
 # Define the full path for the output image
-output_image_path = save_dir.joinpath('calibresult-test.png')
+output_image_path = save_dir.joinpath('calibresult-test3.png')
 # Save image
 if dst is None:
     print("Failed to generate the image (dst is None).")

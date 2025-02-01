@@ -122,7 +122,7 @@ def undistort_image(img_path, mtx, dist, save_dir):
 def main():
     # Define image folder path
     base_dir = Path(__file__).resolve().parent.parent
-    img_dir = base_dir.joinpath('data', 'calibration', 'chessboardimgs')
+    img_dir = base_dir.joinpath('data', 'calibration', 'z2_images')
 
     # Load images
     images = load_images(img_dir)
@@ -137,7 +137,7 @@ def main():
 
     if ret:
         # Select a specific image for undistortion
-        img_path = img_dir.joinpath('left14.jpg')
+        img_path = img_dir.joinpath('00002.png')
         if img_path.exists():
             undistort_image(img_path, mtx, dist, img_dir)
         else:
