@@ -1,148 +1,113 @@
+import cv2
+import cv2.aruco as aruco
 import numpy as np
-import cv2 as cv
 from pathlib import Path
 
-# Termination criteria for cornerSubPix
-CRITERIA = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+# --------------------- CONFIGURATION ---------------------
+ROWS = 8
+COLS = 11
+CHECKER_SIZE = 22.5  # mm
+MARKER_SIZE = 16.0  # mm
 
-# Prepare object points (3D points in real-world space)
-OBJP = np.zeros((6 * 7, 3), np.float32)
-OBJP[:, :2] = np.mgrid[0:7, 0:6].T.reshape(-1, 2)
+ARUCO_DICT = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+BOARD = aruco.CharucoBoard((COLS, ROWS), CHECKER_SIZE, MARKER_SIZE, ARUCO_DICT)
 
+DETECTOR_PARAMS = aruco.DetectorParameters()
+ARUCO_DETECTOR = aruco.ArucoDetector(ARUCO_DICT, DETECTOR_PARAMS)
 
-def load_images(image_dir):
-    """
-    Load image paths from the given directory.
-    :param image_dir: Path to the folder containing chessboard images.
-    :return: List of image file paths.
-    """
-    img_dir = Path(image_dir)
-    
-    if not img_dir.exists():
-        print("The directory does not exist.")
-        return []
+# --------------------- FUNCTIONS ---------------------
+def load_images(img_dir):
+    """Loads all images from the directory."""
+    img_paths = list(img_dir.glob("*.png"))  # Change extension if needed
+    if not img_paths:
+        print(" No images found in directory!")
+    return img_paths
 
-    images = list(img_dir.glob('*.jpg'))
-    
-    if not images:
-        print("The directory is empty.")
-        return []
-    
-    print(f"Found {len(images)} images in {img_dir}.")
-    return images
+def detect_charuco_corners(image_path):
+    """Detects ArUco markers and interpolates ChArUco corners."""
+    image = cv2.imread(str(image_path))
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.equalizeHist(gray)  # Contrast enhancement
 
+    corners, ids, _ = ARUCO_DETECTOR.detectMarkers(gray)
 
-def find_chessboard_corners(images):
-    """
-    Find chessboard corners in the provided images.
-    :param images: List of image file paths.
-    :return: Tuple (object points, image points) for calibration.
-    """
-    objpoints = []  # 3D points in real-world space
-    imgpoints = []  # 2D points in image plane
-    gray = None
+    if ids is None or len(ids) == 0:
+        print(f" No markers detected in {image_path.name}")
+        return None, None
 
-    for fname in images:
-        img = cv.imread(str(fname))
-        gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    retval, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(corners, ids, gray, BOARD)
 
-        # Find chessboard corners
-        ret, corners = cv.findChessboardCorners(gray, (7, 6), None)
+    if retval == 0 or charuco_corners is None or len(charuco_corners) < 4:
+        print(f" Skipping {image_path.name}: Not enough ChArUco corners ({len(charuco_corners) if charuco_corners is not None else 0})")
+        return None, None
 
-        if ret:
-            objpoints.append(OBJP)
+    print(f"{image_path.name}: {len(charuco_corners)} ChArUco corners detected")
 
-            corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), CRITERIA)
-            imgpoints.append(corners2)
+    return charuco_corners, charuco_ids
 
-            # Draw and display the corners
-            cv.drawChessboardCorners(img, (7, 6), corners2, ret)
-            cv.imshow('Chessboard Corners', img)
-            cv.waitKey(500)
+def collect_calibration_data(images):
+    """Processes images and collects object & image points for calibration."""
+    obj_points, img_points = [], []
 
-    cv.destroyAllWindows()
-    return objpoints, imgpoints, gray.shape if gray is not None else None
+    for img_path in images:
+        charuco_corners, charuco_ids = detect_charuco_corners(img_path)
 
+        if charuco_corners is not None:
+            objp = BOARD.getChessboardCorners()[charuco_ids.flatten()]
+            obj_points.append(objp)
+            img_points.append(charuco_corners)
 
-def calibrate_camera(objpoints, imgpoints, image_shape):
-    """
-    Calibrate the camera using object points and image points.
-    :param objpoints: 3D real-world points.
-    :param imgpoints: 2D image plane points.
-    :param image_shape: Shape of the image used for calibration.
-    :return: Camera matrix, distortion coefficients, rotation vectors, translation vectors.
-    """
-    if image_shape is None:
-        print("No valid images provided for calibration.")
-        return None, None, None, None, None
+    return obj_points, img_points
 
-    ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
-        objpoints, imgpoints, image_shape[::-1], None, None
-    )
-    
+def calibrate_camera(obj_points, img_points, img_size):
+    """Performs camera calibration using detected object and image points."""
+    if len(obj_points) < 1:
+        print("\n Not enough valid images for calibration.")
+        return None, None
+
+    print(f"\n Calibrating with {len(obj_points)} valid images...")
+
+    ret, mtx, dist, _, _ = cv2.calibrateCamera(obj_points, img_points, img_size, None, None)
+
     if ret:
-        print("Camera calibration successful!")
+        print(" Calibration Successful!")
+        print(f" Intrinsic Matrix:\n{mtx}")
+        print(f" Distortion Coefficients:\n{dist}")
+        return mtx, dist
     else:
-        print("Camera calibration failed!")
+        print("\n Calibration failed.")
+        return None, None
 
-    return ret, mtx, dist, rvecs, tvecs
+def undistort_image(image_path, mtx, dist):
+    """Undistorts an image using the computed camera parameters."""
+    image = cv2.imread(str(image_path))
+    h, w = image.shape[:2]
 
+    new_camera_mtx, _ = cv2.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
+    undistorted_img = cv2.undistort(image, mtx, dist, None, new_camera_mtx)
 
-def undistort_image(img_path, mtx, dist, save_dir):
-    """
-    Undistort a given image and save the corrected version.
-    :param img_path: Path to the image file to be undistorted.
-    :param mtx: Camera matrix.
-    :param dist: Distortion coefficients.
-    :param save_dir: Directory to save the undistorted image.
-    """
-    img = cv.imread(str(img_path))
-    h, w = img.shape[:2]
+    cv2.imshow("Original Image", image)
+    cv2.imshow("Undistorted Image", undistorted_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-    # Get optimal new camera matrix
-    newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
-
-    # Undistort the image
-    dst = cv.undistort(img, mtx, dist, None, newcameramtx)
-
-    # Crop the image
-    x, y, w, h = roi
-    dst = dst[y:y+h, x:x+w]
-
-    # Save the image
-    save_path = Path(save_dir).joinpath('calibresult-test.png')
-    
-    if dst is None:
-        print("Failed to generate the image (dst is None).")
-    else:
-        cv.imwrite(str(save_path), dst)
-        print(f"Image saved to: {save_path}")
-
-
+# --------------------- MAIN FUNCTION ---------------------
 def main():
-    # Define image folder path
+    """Main function to handle the calibration pipeline."""
     base_dir = Path(__file__).resolve().parent.parent
-    img_dir = base_dir.joinpath('data', 'calibration', 'z2_images')
+    img_dir = base_dir / "data" / "calibration" / "z1_images"
 
-    # Load images
     images = load_images(img_dir)
     if not images:
         return
 
-    # Find chessboard corners
-    objpoints, imgpoints, image_shape = find_chessboard_corners(images)
+    obj_points, img_points = collect_calibration_data(images)
 
-    # Calibrate camera
-    ret, mtx, dist, rvecs, tvecs = calibrate_camera(objpoints, imgpoints, image_shape)
+    if obj_points and img_points:
+        mtx, dist = calibrate_camera(obj_points, img_points, (images[0].stat().st_size, images[0].stat().st_size))
+        
+        if mtx is not None and dist is not None:
+            undistort_image(images[0], mtx, dist)  # Select an image for undistortion
 
-    if ret:
-        # Select a specific image for undistortion
-        img_path = img_dir.joinpath('00002.png')
-        if img_path.exists():
-            undistort_image(img_path, mtx, dist, img_dir)
-        else:
-            print(f"Image {img_path} not found for undistortion.")
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
