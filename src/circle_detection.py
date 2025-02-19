@@ -111,11 +111,11 @@ def main():
     #print(__file__)
     my_dir = Path(__file__).resolve().parent # go up one level to tests folder, .resolve() alone gives the absolute location
     print(my_dir)
-    img_dir = my_dir.parent.joinpath('data','raw', 'z5_white') # form img_dir variable containing all images of all zoom levels
+    img_dir = my_dir.parent.joinpath('data','raw', 'z2_liver') # form img_dir variable containing all images of all zoom levels
     print(img_dir)
 
     # Define expected radii:
-    expected_radius = 410
+    expected_radius = 258
     success_count = 0
     total_count = 0
 
@@ -155,8 +155,15 @@ def main():
             color_output = cv.cvtColor(img_resized, cv.COLOR_GRAY2BGR)
             color_output = draw_circles(color_output, circles)
             cv.imshow('detected circle', color_output)
-            cv.waitKey(1000)
-        
+
+            key = cv.waitKey(0)
+
+            if key:
+                cv.destroyAllWindows()
+
+            if key == ord('q'):
+                break
+                
         except Exception as e:
             print(f"[ERROR] Exception processing {img_pth}: {e}")
 

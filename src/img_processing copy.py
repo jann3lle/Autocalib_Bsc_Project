@@ -11,7 +11,7 @@ def resize_image(img, width=800):
     # 2 arguments - input img, target size for img
 
 def blur_image(img_resized):
-    blur = cv.GaussianBlur(img_resized, (5, 5), 0)
+    blur = cv.GaussianBlur(img_resized, (1, 1), 0)
     ret, thresh = cv.threshold(blur, 35, 255, cv.THRESH_BINARY)
     return thresh
 
@@ -46,13 +46,13 @@ def filter_components(centroids,thresh, stats, labels, num_labels, min_width=400
 
     return mask, color_copy
 
-def clean_mask(mask, kernel_size=(13, 13)):
+def clean_mask(mask, kernel_size=(5, 5)):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
     return cv.morphologyEx(mask, cv.MORPH_ELLIPSE, kernel)
 
-def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp=1.4, adjusted_param2=10, zoom_level=None, expected_radii=None):
+def detect_circles(edges, min_radius=300, max_radius=900, adjusted_dp=1, adjusted_param2=10, zoom_level=None, expected_radii=None):
     # Detect circles using HoughCircles
-    circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=600,
+    circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=50,
                                param2=adjusted_param2, minRadius=min_radius, maxRadius=max_radius)
 
     if circles is not None:
@@ -81,8 +81,8 @@ def draw_circles(img_resized, circles, zoom_level):
             # Draw the center of the circle
             cv.circle(img_resized, (x, y), 2, (255, 0, 255), 3)
             # Add text showing the radius of the circle
-            #cv.putText(img_resized, f'Radius: {r}px', (x - 40, y - r - 40), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            cv.putText(img_resized, f'Zoom Level: {zoom_level}',(x - 10, y - r - 10), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv.putText(img_resized, f'Radius: {r}px', (x - 60, y - r - 20), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv.putText(img_resized, f'Zoom Level: {zoom_level}',(x + 80, y - r - 20), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
     else:
         print('No circles detected to draw.')
     return img_resized
@@ -92,7 +92,7 @@ def main():
     #print(__file__)
     my_dir = Path(__file__).resolve().parent # go up one level to tests folder, .resolve() alone gives the absolute location
     print(my_dir)
-    img_dir = my_dir.parent.joinpath('data', 'raw', 'z1_white') #.parent - go up to main level (autocalib-for-mono)
+    img_dir = my_dir.parent.joinpath('data', 'raw', 'z5_liver') #.parent - go up to main level (autocalib-for-mono)
     # then go into 'data/raw/z1_liver'
     print('Full path to zoom level subfolder:', img_dir)
     img_paths = img_dir.glob('*.png')  # Get all .png files in the directory
@@ -152,7 +152,7 @@ def main():
     cv.destroyAllWindows()
     
     # Save image 
-    save_dir = Path(__file__).resolve().parent.parent.joinpath('data', 'processed', 'z5_debugging')  # Example output folder
+    save_dir = Path(__file__).resolve().parent.parent.joinpath('data', 'processed', 'z1_processing')  # Example output folder
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Call 'Resize img' functrion
@@ -201,7 +201,7 @@ def main():
     color_output = draw_circles(color_output, circles, zoom_level)
     cv.imshow('detected circle', color_output)
     cv.waitKey(1000)
-    output_image_path = save_dir.joinpath('circle-detected.png')
+    output_image_path = save_dir.joinpath('circle-detected-3.png')
     cv.imwrite(str(output_image_path), color_output)
 
 if __name__ == '__main__':
