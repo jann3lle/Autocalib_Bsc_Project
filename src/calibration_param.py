@@ -73,6 +73,8 @@ def calibrate_camera(obj_points, img_points, img_size):
         print(" Calibration Successful!")
         print(f" Intrinsic Matrix:\n{mtx}")
         print(f" Distortion Coefficients:\n{dist}")
+        #print(f" Object Points:\n{obj_points}")
+        #print(f" Image Points:\n{img_points}")
         return mtx, dist
     else:
         print("\n Calibration failed.")
@@ -95,7 +97,7 @@ def undistort_image(image_path, mtx, dist):
 def main():
     """Main function to handle the calibration pipeline."""
     base_dir = Path(__file__).resolve().parent.parent
-    img_dir = base_dir / "data" / "calibration" / "z1_images"
+    img_dir = base_dir / "data" / "calibration" / "z5_images"
 
     images = load_images(img_dir)
     if not images:
