@@ -1,6 +1,6 @@
 import cv2
 import cv2.aruco as aruco
-import pathlib
+from pathlib import Path
 
 # Define ArUco dictionary (this should match the markers printed on your board)
 aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
@@ -10,8 +10,8 @@ detector_params = aruco.DetectorParameters()
 aruco_detector = aruco.ArucoDetector(aruco_dict, detector_params)
 
 # Directory containing images
-base_dir = pathlib.Path(__file__).resolve().parent.parent  # Define the base directory
-img_dir = base_dir / 'data' / 'calibration' / 'z5_images'  # Define image folder path
+base_dir = Path(__file__).resolve().parent.parent  # Define the base directory
+img_dir = base_dir / 'data' / 'calibration' / 'z1_images'  # Define image folder path
 
 # Load all images from the folder
 images = list(img_dir.glob('*.png'))  # Change extension to match your files (.jpg, .png, etc.)
@@ -26,7 +26,7 @@ for image_path in images:
 
     if ids is not None and len(ids) > 0:
         # Draw detected markers on the image
-        aruco.drawDetectedMarkers(image, corners, ids)
+        aruco.drawDetectedMarkers(image, corners)
         print(f"Detected markers in image: {image_path.name}")
 
     # Show the image with detected markers (if any)

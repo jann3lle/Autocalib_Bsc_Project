@@ -32,7 +32,7 @@ def detect_charuco_corners(image_path):
     corners, ids, _ = ARUCO_DETECTOR.detectMarkers(gray)
 
     if ids is None or len(ids) == 0:
-        print(f" Skipping {image_path.name}: No markers detected.")
+        print(f" No markers detected in {image_path.name}")
         return None, None
 
     retval, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(corners, ids, gray, BOARD)
@@ -107,7 +107,6 @@ def main():
 
     if obj_points and img_points:
         mtx, dist = calibrate_camera(obj_points, img_points, (images[0].stat().st_size, images[0].stat().st_size))
-        #mtx, dist = calibrate_camera(obj_points, img_points, image_size)
         
         if mtx is not None and dist is not None:
             undistort_image(images[0], mtx, dist)  # Select an image for undistortion

@@ -3,7 +3,7 @@ import cv2.aruco as aruco
 import numpy as np
 from pathlib import Path
 
-# Define ChArUco board parameters
+# ---- Configuration ---- #
 rows = 8
 cols = 11
 checker_size = 22.5 # in mm
@@ -46,7 +46,7 @@ for image_path in images:
     if ids is not None and len(ids) > 0:
 
         print(f"Detected {len(ids)} markers in {image_path.name}")
-        print(f"Marker IDs: {ids.flatten()}")
+        #print(f"Marker IDs: {ids.flatten()}")
 
         # Interpolate ChArUco corners (refine marker corner detection)
         retval, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(corners, ids, gray, board)
@@ -75,8 +75,8 @@ for image_path in images:
             valid_images = +1
 
             # Draw detected markers and ChArUco corners on the image
-            aruco.drawDetectedMarkers(image, corners, ids)
-            aruco.drawDetectedCornersCharuco(image, charuco_corners, charuco_ids)
+            aruco.drawDetectedMarkers(image, corners)
+            aruco.drawDetectedCornersCharuco(image, charuco_corners)
         else:
             print(f"Skipping {image_path.name}: Not enough ChArUco corners detected ({len(charuco_corners) if charuco_corners is not None else 0})")    
 
@@ -87,7 +87,7 @@ for image_path in images:
     # Show the image with detected markers (if any)
     cv2.imshow(f"Detected ArUco Markers - {image_path.name}", image)
 
-    key = cv2.waitKey(0)
+    key = cv2.waitKey(1)
 
     if key:
         cv2.destroyAllWindows()
