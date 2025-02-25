@@ -18,12 +18,13 @@ aruco_detector = aruco.ArucoDetector(aruco_dict, detector_params)
 # mtx and dist 
 
 mtx = np.array([
-    [2.27618495e+05, 0.00000000e+00, 2.33722001e+05],
-    [0.00000000e+00, 1.01587727e+06, 2.33722000e+05],
-    [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
- ])
-dist = np.array([[4.98197567e+00, -9.11929155e+00, -3.20344787e-03, -1.42911756e-02, 4.13836317e+00]])
+    [213.73614728,   0.,         320.20803336],
+    [  0.,        213.55426958, 235.24437409],
+    [  0.,           0.,           1.        ]
+])
 
+
+dist = np.array([[-0.07125306,  0.03319633, -0.00068351, -0.00684024, -0.02905023]])
 
 # --- functions --- #
 
@@ -70,7 +71,7 @@ def collect_calibration_data(img_paths):
 
     return obj_points, img_points
 
-def reprojection_error(imgpoints_detected, imgpoints_reprojected, img_path, IDs=None):
+def reprojection_error(imgpoints_detected, imgpoints_reprojected, img_path, IDs):
     """
     calculate reprojection error given the detected and reprojected points
     """
@@ -170,8 +171,8 @@ def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths, wai
 
 def main():
     # Directory containing images
-    base_dir = Path(__file__).resolve().parent.parent  # Define the base directory
-    img_dir = base_dir / 'data' / 'calibration' / 'z5_images'  # Define image folder path
+    base_dir = Path(__file__).resolve().parent.parent
+    img_dir = base_dir / "data" / "calibration" / "z1_images"
 
     # Load all images from the folder
     img_paths = load_images(img_dir)
