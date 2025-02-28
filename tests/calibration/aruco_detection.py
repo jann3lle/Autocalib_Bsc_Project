@@ -11,7 +11,7 @@ aruco_detector = aruco.ArucoDetector(aruco_dict, detector_params)
 
 # Directory containing images
 base_dir = Path(__file__).resolve().parent.parent  # Define the base directory
-img_dir = base_dir / 'data' / 'calibration' / 'z1_images'  # Define image folder path
+img_dir = base_dir / 'data' / 'calibration' / 'z5_images'  # Define image folder path
 
 # Load all images from the folder
 images = list(img_dir.glob('*.png'))  # Change extension to match your files (.jpg, .png, etc.)
@@ -26,11 +26,11 @@ for image_path in images:
 
     if ids is not None and len(ids) > 0:
         # Draw detected markers on the image
-        aruco.drawDetectedMarkers(image, corners)
+        aruco.drawDetectedMarkers(image, corners, ids)
         print(f"Detected markers in image: {image_path.name}")
 
     # Show the image with detected markers (if any)
     cv2.imshow(f"Detected ArUco Markers - {image_path.name}", image)
-    cv2.waitKey(500)  # Display each image for 500ms
+    cv2.waitKey(0)  # Display each image for 500ms
     cv2.destroyAllWindows()
 

@@ -2,31 +2,7 @@ import cv2
 import cv2.aruco as aruco
 import numpy as np
 from pathlib import Path
-
-# --- configuartion --- #
-rows = 8
-cols = 11
-checker_size = 22.5 #mm
-marker_size = 16.0 #mm
-
-aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
-board = aruco.CharucoBoard((cols,rows), checker_size, marker_size, aruco_dict)
-
-detector_params = aruco.DetectorParameters()
-aruco_detector = aruco.ArucoDetector(aruco_dict, detector_params)
-
-# mtx and dist 
-
-mtx = np.array([
-    [213.73614728,   0.,         320.20803336],
-    [  0.,        213.55426958, 235.24437409],
-    [  0.,           0.,           1.        ]
-])
-
-
-dist = np.array([[-0.07125306,  0.03319633, -0.00068351, -0.00684024, -0.02905023]])
-
-# --- functions --- #
+import os
 
 def load_images(img_dir):
     """Loads all images from the directory."""
@@ -59,7 +35,7 @@ def detect_charuco_corners(img_path):
 
 def collect_calibration_data(img_paths):
     ''' Processes images and collects object and image points for calibration.'''
-    obj_points, img_points = [], []
+    obj_points, img_points, im_pths_lst = [], [], []
 
     for img_path in img_paths:
         charuco_corners, charuco_ids = detect_charuco_corners(img_path)
@@ -68,14 +44,15 @@ def collect_calibration_data(img_paths):
             objp = board.getChessboardCorners()[charuco_ids.flatten()]
             obj_points.append(objp) # Object points from 3D
             img_points.append(charuco_corners)
-
-    return obj_points, img_points
+            im_pths_lst.append(img_path)
+ 
+    return obj_points, img_points, im_pths_lst
 
 def reprojection_error(imgpoints_detected, imgpoints_reprojected, img_path, IDs):
     """
     calculate reprojection error given the detected and reprojected points
     """
-    diff = (imgpoints_detected - imgpoints_reprojected)
+    diff = (imgpoints_detected - imgpoints_reprojected) 
     if np.max(diff) > 1000:
         # to avoid overflow
         error_np = np.inf
@@ -170,21 +147,51 @@ def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths, wai
     return mean_errors
 
 def main():
-    # Directory containing images
-    base_dir = Path(__file__).resolve().parent.parent
-    img_dir = base_dir / "data" / "calibration" / "z1_images"
 
     # Load all images from the folder
     img_paths = load_images(img_dir)
+
+    
     if not img_paths:
         return
     
-    obj_points, img_points = collect_calibration_data(img_paths)
+    obj_points, img_points, im_pths_lst = collect_calibration_data(img_paths)
    
     # Calculate reprojection error for all images
-    mean_errors = calculate_reprojection_error(mtx, dist, obj_points, img_points, img_paths)
+    mean_errors = calculate_reprojection_error(mtx, dist, obj_points, img_points, im_pths_lst)
 
     print("Mean reprojection errors for each image:", mean_errors)
 
 if __name__ == "__main__":
+    
+    # --- configuartion --- #
+    zoom_num = 2
+    rows = 8
+    cols = 11
+    checker_size = 22.5 #mm
+    marker_size = 16.0 #mm
+    
+    # Define image directory 
+    base_dir = Path(__file__).resolve().parent.parent  # Define the base directory
+    img_dir = base_dir / 'data' / 'calibration' / f'z{zoom_num}_frames'  # Define image folder path
+
+    # Save matrices 
+    results_folder = base_dir / 'data' / 'calibration_results' / f'z{zoom_num}_images' 
+    if not os.path.exists(results_folder):
+        os.makedirs(results_folder)
+
+    aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+    board = aruco.CharucoBoard((cols,rows), checker_size, marker_size, aruco_dict)
+
+    detector_params = aruco.DetectorParameters()
+    aruco_detector = aruco.ArucoDetector(aruco_dict, detector_params)
+
+    # mtx and dist 
+
+    mtx = np.loadtxt(f'{results_folder}/mtx.txt')
+
+    dist = np.loadtxt(f'{results_folder}/dist.txt')
+
+    # --- functions --- #
+
     main()
