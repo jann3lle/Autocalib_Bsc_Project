@@ -25,7 +25,7 @@ def detect_charuco_corners(img_path):
     
     retval, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(corners, ids, gray, board)
 
-    if retval == 0 or charuco_corners is None or len(charuco_corners) < 4:
+    if retval == 0 or charuco_corners is None or len(charuco_corners) < 6:
         print(f"Skipping {img_path.name}")
         return None, None
     
@@ -96,7 +96,7 @@ def reprojection_error(imgpoints_detected, imgpoints_reprojected, img_path, IDs)
     
     return error_np
 
-def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths, waitTime=0, IDs=None):
+def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths,im_pths_lst, waitTime=0, IDs=None):
     """
     calculate reprojection error on a set of points from images given the intrinsics and distortion coefficients
 
@@ -118,7 +118,7 @@ def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths, wai
     """
 
     mean_errors = []
-
+    errors = []
 
     for i in range(len(objPoints)):
 
@@ -144,6 +144,24 @@ def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths, wai
         else:
             error_np = reprojection_error(imgpoints_detected, imgpoints_reprojected, IDs=ID)
         mean_errors.append(error_np)
+
+        # TO DO - Display image with best versus worst reprojection error
+        # Find the images with the best and worst reprojection errors
+        errors.append((error_np, im_pths_lst[i]))
+
+        best_error, best_image_path = min(errors, key=lambda x: x[0])  # Lowest error
+        worst_error, worst_image_path = max(errors, key=lambda x: x[0])  # Highest error
+
+        best_image = cv2.imread(str(best_image_path))
+        worst_image = cv2.imread(str(worst_image_path))
+
+        print(f"Best reprojection error: {best_error:.4f} ({best_image_path.name})")
+        print(f"Worst reprojection error: {worst_error:.4f} ({worst_image_path.name})")
+
+        cv2.imshow(f"Best Reprojection Error: {best_image_path.name}", best_image)
+        cv2.imshow(f"Worst Reprojection Error: {worst_image_path.name}", worst_image)
+        cv2.waitKey(waitTime)
+    
     return mean_errors
 
 def main():
@@ -151,32 +169,32 @@ def main():
     # Load all images from the folder
     img_paths = load_images(img_dir)
 
-    
     if not img_paths:
         return
     
     obj_points, img_points, im_pths_lst = collect_calibration_data(img_paths)
    
     # Calculate reprojection error for all images
-    mean_errors = calculate_reprojection_error(mtx, dist, obj_points, img_points, im_pths_lst)
+    mean_errors = calculate_reprojection_error(mtx, dist, obj_points, img_points, img_paths, im_pths_lst)
 
     print("Mean reprojection errors for each image:", mean_errors)
+
 
 if __name__ == "__main__":
     
     # --- configuartion --- #
-    zoom_num = 2
+    zoom_num = 3
     rows = 8
     cols = 11
     checker_size = 22.5 #mm
     marker_size = 16.0 #mm
     
     # Define image directory 
-    base_dir = Path(__file__).resolve().parent.parent  # Define the base directory
+    base_dir = Path(__file__).resolve().parent.parent.parent  # Define the base directory
     img_dir = base_dir / 'data' / 'calibration' / f'z{zoom_num}_frames'  # Define image folder path
 
     # Save matrices 
-    results_folder = base_dir / 'data' / 'calibration_results' / f'z{zoom_num}_images' 
+    results_folder = base_dir / 'data' / 'calibration' / 'calibration_results' / f'z{zoom_num}_images' 
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
 

@@ -10,11 +10,12 @@ detector_params = aruco.DetectorParameters()
 aruco_detector = aruco.ArucoDetector(aruco_dict, detector_params)
 
 # Directory containing images
-base_dir = Path(__file__).resolve().parent.parent  # Define the base directory
+base_dir = Path(__file__).resolve().parent.parent.parent  # Define the base directory
 img_dir = base_dir / 'data' / 'calibration' / 'z5_images'  # Define image folder path
 
 # Load all images from the folder
 images = list(img_dir.glob('*.png'))  # Change extension to match your files (.jpg, .png, etc.)
+print(f"found images: {images}")
 
 for image_path in images:
     # Load the image

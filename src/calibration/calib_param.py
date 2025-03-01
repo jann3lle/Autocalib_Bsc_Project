@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 import os
 
-def load_images():
+def load_images(img_dir):
     ''' Loads all images from the directory'''
     img_paths = list(img_dir.glob("*.png"))
     if not img_paths:
@@ -14,6 +14,7 @@ def load_images():
 def main():
     # Load all image paths
     img_paths = load_images(img_dir)
+    print("images found")
 
     if not img_paths:
         return
@@ -44,8 +45,8 @@ if __name__ == "__main__":
 
     # mtx and dist 
 
-    mtx = np.loadtxt(f'{results_folder}/mtx.txt')
+    #mtx = np.loadtxt(f'{results_folder}/mtx.txt')
 
-    dist = np.loadtxt(f'{results_folder}/dist.txt')
+    #dist = np.loadtxt(f'{results_folder}/dist.txt')
     
     main()
