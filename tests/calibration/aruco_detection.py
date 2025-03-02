@@ -34,4 +34,3 @@ for image_path in images:
     cv2.imshow(f"Detected ArUco Markers - {image_path.name}", image)
     cv2.waitKey(0)  # Display each image for 500ms
     cv2.destroyAllWindows()
-
