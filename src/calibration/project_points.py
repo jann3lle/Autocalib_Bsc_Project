@@ -96,7 +96,7 @@ def reprojection_error(imgpoints_detected, imgpoints_reprojected, img_path, IDs)
     
     return error_np
 
-def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths,im_pths_lst, waitTime=0, IDs=None):
+def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths, im_pths_lst, waitTime=0, IDs=None):
     """
     calculate reprojection error on a set of points from images given the intrinsics and distortion coefficients
 
@@ -113,12 +113,14 @@ def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths,im_p
 
     image_pths : list of strings
     list of image paths to display the reprojection error, by default None
+    im_pths_lst : list of strings different to image_pths
+    list of RELEVANT image paths to display the reprojection error (images not skipped)
     waitTime : int, optional
     time to wait for key press to continue, by default 1
     """
 
     mean_errors = []
-    errors = []
+    #errors = []
 
     for i in range(len(objPoints)):
 
@@ -136,7 +138,7 @@ def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths,im_p
         else:
             ID = IDs[i]
         if img_paths is not None:
-            img_path = cv2.imread(str(img_paths[i]))
+            img_path = cv2.imread(str(im_pths_lst[i])) # Using relevant image path list (images that aren't skipped)
             
             error_np, annotated_image = reprojection_error(imgpoints_detected, imgpoints_reprojected, img_path, IDs=ID)
             cv2.imshow('charuco board', annotated_image)
@@ -147,20 +149,20 @@ def calculate_reprojection_error(mtx, dist, objPoints, imgPoints, img_paths,im_p
 
         # TO DO - Display image with best versus worst reprojection error
         # Find the images with the best and worst reprojection errors
-        errors.append((error_np, im_pths_lst[i]))
+        #errors.append((error_np, im_pths_lst[i]))
 
-        best_error, best_image_path = min(errors, key=lambda x: x[0])  # Lowest error
-        worst_error, worst_image_path = max(errors, key=lambda x: x[0])  # Highest error
+        #best_error, best_image_path = min(errors, key=lambda x: x[0])  # Lowest error
+        #worst_error, worst_image_path = max(errors, key=lambda x: x[0])  # Highest error
 
-        best_image = cv2.imread(str(best_image_path))
-        worst_image = cv2.imread(str(worst_image_path))
+        #best_image = cv2.imread(str(best_image_path))
+        #worst_image = cv2.imread(str(worst_image_path))
 
-        print(f"Best reprojection error: {best_error:.4f} ({best_image_path.name})")
-        print(f"Worst reprojection error: {worst_error:.4f} ({worst_image_path.name})")
+        #print(f"Best reprojection error: {best_error:.4f} ({best_image_path.name})")
+        #print(f"Worst reprojection error: {worst_error:.4f} ({worst_image_path.name})")
 
-        cv2.imshow(f"Best Reprojection Error: {best_image_path.name}", best_image)
-        cv2.imshow(f"Worst Reprojection Error: {worst_image_path.name}", worst_image)
-        cv2.waitKey(waitTime)
+        #cv2.imshow(f"Best Reprojection Error: {best_image_path.name}", best_image)
+        #cv2.imshow(f"Worst Reprojection Error: {worst_image_path.name}", worst_image)
+        #cv2.waitKey(waitTime)
     
     return mean_errors
 
@@ -173,7 +175,7 @@ def main():
         return
     
     obj_points, img_points, im_pths_lst = collect_calibration_data(img_paths)
-   
+
     # Calculate reprojection error for all images
     mean_errors = calculate_reprojection_error(mtx, dist, obj_points, img_points, img_paths, im_pths_lst)
 
@@ -182,7 +184,7 @@ def main():
 
 if __name__ == "__main__":
     
-    # --- configuartion --- #
+    # --- Configuartion --- #
     zoom_num = 3
     rows = 8
     cols = 11
@@ -191,10 +193,10 @@ if __name__ == "__main__":
     
     # Define image directory 
     base_dir = Path(__file__).resolve().parent.parent.parent  # Define the base directory
-    img_dir = base_dir / 'data' / 'calibration' / f'z{zoom_num}_frames'  # Define image folder path
+    img_dir = base_dir / 'data' / 'calibration' / 'z3_frames' #f'z{zoom_num}_frames'  # Define image folder path
 
     # Save matrices 
-    results_folder = base_dir / 'data' / 'calibration' / 'calibration_results' / f'z{zoom_num}_images' 
+    results_folder = base_dir / 'data' /'calibration'/ 'calibration_results' / f'z{zoom_num}_images' 
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
 
@@ -205,10 +207,9 @@ if __name__ == "__main__":
     aruco_detector = aruco.ArucoDetector(aruco_dict, detector_params)
 
     # mtx and dist 
+    mtx = np.loadtxt(f'{results_folder}/mtx1.txt')
 
-    mtx = np.loadtxt(f'{results_folder}/mtx.txt')
-
-    dist = np.loadtxt(f'{results_folder}/dist.txt')
+    dist = np.loadtxt(f'{results_folder}/dist1.txt')
 
     # --- functions --- #
 

@@ -146,7 +146,7 @@ def main():
 if __name__ == "__main__":
 
     # Configuration
-    zoom_num = 1
+    zoom_num = 5
     rows = 8
     cols = 11
     checker_size = 22.5 #mm
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     img_dir = base_dir / 'data' / 'calibration' / f'z{zoom_num}_images'  # Define image folder path
 
     # Save matrices 
-    results_folder = base_dir / 'data' / 'calibration_results' / f'z{zoom_num}_images' 
+    results_folder = base_dir / 'data' / 'calibration'/ 'calibration_results' / f'z{zoom_num}_images' 
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
 
