@@ -51,8 +51,10 @@ def clean_mask(mask, kernel_size=(13, 13)):
     return cv.morphologyEx(mask, cv.MORPH_ELLIPSE, kernel)
 
 def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adjusted_param2= 8):
+   
     circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=600,
                                 param2=adjusted_param2, minRadius=min_radius, maxRadius=max_radius)
+    
     if circles is not None:
         circles = np.round(circles[0]).astype("int") #access first detected circle **need to improve
         print(f"Circles detected: {circles}")
