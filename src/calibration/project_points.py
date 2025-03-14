@@ -193,7 +193,7 @@ if __name__ == "__main__":
     
     # Define image directory 
     base_dir = Path(__file__).resolve().parent.parent.parent  # Define the base directory
-    img_dir = base_dir / 'data' / 'calibration' / 'z3_frames' #f'z{zoom_num}_frames'  # Define image folder path
+    img_dir = base_dir / 'data' / 'calibration' / f'z{zoom_num}_frames'  # Define image folder path
 
     # Save matrices 
     results_folder = base_dir / 'data' /'calibration'/ 'calibration_results' / f'z{zoom_num}_images' 

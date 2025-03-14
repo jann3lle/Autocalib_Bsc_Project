@@ -103,6 +103,7 @@ def main():
     
     from tests.circle_detection.circle_detection_func import resize_image, blur_image, find_connected_components,filter_components, clean_mask, detect_circles, draw_circles 
     img= cv2.imread(str(input_img_path), cv2.IMREAD_GRAYSCALE)
+    
     # CALL THESE FUNCTIONS 
     img_resized = resize_image(img)
     thresh = blur_image(img_resized)
