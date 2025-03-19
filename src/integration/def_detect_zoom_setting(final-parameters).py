@@ -17,7 +17,6 @@ def detect_zoom_setting(img_path):
         img_resized = cv.resize(img, (width, height))
         return img_resized
 
-
     def blur_image(img_resized):
         blur = cv.GaussianBlur(img_resized, (5, 5), 0)
         ret, thresh = cv.threshold(blur, 35, 255, cv.THRESH_BINARY)
@@ -58,7 +57,7 @@ def detect_zoom_setting(img_path):
         kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
         return cv.morphologyEx(mask, cv.MORPH_ELLIPSE, kernel)
 
-    def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adjusted_param2= 6):
+    def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.6, adjusted_param2= 6):
         circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=600,
                                     param2=adjusted_param2, minRadius=min_radius, maxRadius=max_radius)
         num_circles =  circles.shape[1] # Number of circles detected
@@ -106,6 +105,7 @@ def detect_zoom_setting(img_path):
         print(f"Detected Zoom Level: {zoom_level}")
         
         return zoom_level
+   
     img_resized = resize_image(img_path)
     thresh = blur_image(img_resized)
     num_labels, labels, stats, centroids = find_connected_components(thresh)

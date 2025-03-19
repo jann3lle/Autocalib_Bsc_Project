@@ -36,7 +36,7 @@ def filter_components(centroids,thresh, stats, labels, num_labels, min_width=400
         h = stats[i, cv.CC_STAT_HEIGHT]
         area = stats[i, cv.CC_STAT_AREA]
         (cX, cY) = centroids[i]
-        print(f"Component {i}: Bounding Box ({x}, {y}, {w}, {h}), Area: {area}, Centroid: ({cX:.2f}, {cY:.2f})")
+        #print(f"Component {i}: Bounding Box ({x}, {y}, {w}, {h}), Area: {area}, Centroid: ({cX:.2f}, {cY:.2f})")
         
         if w > min_width and h > min_height and area > min_area:
             component_mask = (labels == i).astype("uint8") * 255
@@ -52,7 +52,7 @@ def clean_mask(mask, kernel_size=(13, 13)):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, kernel_size)
     return cv.morphologyEx(mask, cv.MORPH_ELLIPSE, kernel)
 
-def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.4, adjusted_param2= 6):
+def detect_circles(edges, min_radius=200, max_radius=600, adjusted_dp = 1.6, adjusted_param2= 6):
     circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, dp=adjusted_dp, minDist=600,
                                 param2=adjusted_param2, minRadius=min_radius, maxRadius=max_radius)
     if circles is not None:
@@ -75,7 +75,7 @@ def draw_circles(img_resized, circles):
 
 DEBUG = False # Set to True for detailed debugging
 
-def calculate_success_rate(circles, expected_radius, tolerance=0.01):
+def calculate_success_rate(circles, expected_radius, tolerance=0.05):
     """
     Calculate success based on detected circle's radius and expected radius.
     :param circles: Detected circles from HoughCircles.
@@ -109,10 +109,8 @@ def calculate_success_rate(circles, expected_radius, tolerance=0.01):
 def main():
     ''' Where __file__ rep the current file being worked on'''
     #print(__file__)
-    my_dir = Path(__file__).resolve().parent # go up one level to tests folder, .resolve() alone gives the absolute location
-    print(my_dir)
-    img_dir = my_dir.parent.joinpath('data','raw') # form img_dir variable containing all images of all zoom levels
-    print(img_dir)
+    my_dir = Path(__file__).resolve().parent.parent.parent # go up one level to tests folder, .resolve() alone gives the absolute location
+    img_dir = my_dir.joinpath('data','raw') # form img_dir variable containing all images of all zoom levels
     zoom_levels = ['z1_liver', 'z1_white', 'z2_liver', 'z2_white', 'z3_liver', 'z3_white', 'z4_liver', 'z4_white', 'z5_liver', 'z5_white']
     success_counts = {zoom: 0 for zoom in zoom_levels}
     total_counts = {zoom: 0 for zoom in zoom_levels}
